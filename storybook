@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Story for Gunnu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --book-width: 420px;
+            --book-height: 580px;
+            --page-color: #fffaf5;
+            --cover-color: #fce7f3;
+            --accent-color: #d4af37;
+            --speed: 0.8s;
+        }
+
+        @media (max-width: 900px) {
+            :root {
+                --book-width: 320px;
+                --book-height: 460px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --book-width: 280px;
+                --book-height: 420px;
+            }
+        }
+
+        body {
+            background: radial-gradient(circle, #fff5f5 0%, #ffe4e6 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            perspective: 2000px;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+            margin: 0;
+            padding: 20px;
+            touch-action: pan-y;
+        }
+
+        .petal {
+            position: absolute;
+            background-color: #ffb7c5;
+            border-radius: 150% 0 150% 0;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            0% { transform: translate(0, -10vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translate(100px, 110vh) rotate(360deg); opacity: 0; }
+        }
+
+        .book {
+            position: relative;
+            width: var(--book-width);
+            height: var(--book-height);
+            transition: transform var(--speed);
+            transform-style: preserve-3d;
+            cursor: pointer;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .book.open {
+            transform: translateX(50%);
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left;
+            transform-style: preserve-3d;
+            transition: transform var(--speed) cubic-bezier(0.645, 0.045, 0.355, 1);
+            user-select: none;
+        }
+
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            backface-visibility: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .front {
+            background-color: var(--page-color);
+            z-index: 2;
+            border-radius: 0 8px 8px 0;
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .back {
+            background-color: var(--page-color);
+            transform: rotateY(180deg);
+            z-index: 1;
+            border-radius: 8px 0 0 8px;
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .cover-front .front {
+            background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+            color: white;
+            border-left: 12px solid rgba(0,0,0,0.2);
+        }
+
+        .cover-back .back {
+            background: linear-gradient(135deg, #e11d48 0%, #fb7185 100%);
+            color: white;
+        }
+
+        .flipped {
+            transform: rotateY(-180deg);
+        }
+
+        .page-shadow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(0,0,0,0.08) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.05) 100%);
+            pointer-events: none;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 1rem;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .front .page-number { right: 1.5rem; }
+        .back .page-number { left: 1.5rem; }
+
+        .btn {
+            background: white;
+            padding: 0.8rem 1.8rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            color: #e11d48;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            background: #fff1f2;
+            border-color: #fecaca;
+        }
+
+        .btn-primary {
+            background: #e11d48;
+            color: white;
+        }
+
+        .page-content {
+            height: 100%;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .romantic-border {
+            border: 1px solid rgba(225, 29, 72, 0.2);
+            margin: 10px;
+            height: calc(100% - 20px);
+            width: calc(100% - 20px);
+            position: relative;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-15px) scale(1.1); }
+        }
+        .floating-heart {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .divider {
+            width: 50px;
+            height: 2px;
+            background: #e11d48;
+            margin: 1.5rem 0;
+            opacity: 0.3;
+        }
+
+        .handwritten {
+            font-family: 'Brush Script MT', cursive;
+            font-size: 1.8rem;
+            color: #be123c;
+        }
+        
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+        .memory-box {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-size: 0.85rem;
+            color: #64748b;
+            border: 1px solid #fecaca;
+        }
+
+        /* Gemini Features Styling */
+        .gemini-tool {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(225, 29, 72, 0.1);
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid #fee2e2;
+        }
+
+        .gemini-input {
+            width: 100%;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            outline: none;
+        }
+
+        .gemini-input:focus {
+            border-color: #fb7185;
+            box-shadow: 0 0 0 2px rgba(251, 113, 133, 0.2);
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #fecaca;
+            border-top: 5px solid #e11d48;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #dream-canvas {
+            width: 100%;
+            height: 180px;
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px dashed #fecaca;
+        }
+
+        #dream-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Settings Icon and Overlay */
+        #settings-trigger {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+        #settings-trigger:hover { opacity: 1; }
+
+        #settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Settings Trigger (Gear icon via Emoji for simple GitHub hosting) -->
+    <div id="settings-trigger" title="Setup Magic Features">⚙️</div>
+
+    <div id="settings-overlay">
+        <div class="settings-card">
+            <h3 class="text-xl font-bold mb-4 text-rose-600">Magic Settings</h3>
+            <p class="text-sm text-slate-500 mb-4">Enter your Gemini API Key to enable the poetry and image features.</p>
+            <input type="password" id="api-key-input" class="gemini-input" placeholder="Enter Gemini API Key">
+            <div class="flex gap-2">
+                <button onclick="saveApiKey()" class="btn btn-primary w-full py-2">Save Key</button>
+                <button onclick="closeSettings()" class="btn w-full py-2">Close</button>
+            </div>
+            <p class="mt-4 text-[10px] text-slate-400">Keys are stored locally in your browser and never shared.</p>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <div class="spinner mb-4"></div>
+        <p id="loading-text" class="text-rose-600 font-bold animate-pulse text-lg">✨ Sprinkling Magic...</p>
+    </div>
+
+    <div id="book" class="book">
+        <!-- Paper 1 (Cover) -->
+        <div id="p1" class="page cover-front" style="z-index: 10;">
+            <div class="front">
+                <div class="romantic-border flex flex-col items-center justify-center p-8">
+                    <div class="floating-heart text-6xl mb-8">💖</div>
+                    <h1 class="text-2xl font-serif tracking-[0.2em] text-white mb-2 uppercase">FOR YOU</h1>
+                    <div class="w-16 h-1 bg-white mb-8 rounded-full"></div>
+                    <h2 class="text-6xl font-bold mb-10 text-white italic drop-shadow-lg">Gunnu</h2>
+                    <p class="text-[10px] uppercase tracking-[0.5em] text-white opacity-80">A Journey of Memories</p>
+                    <p class="mt-20 text-sm italic text-white animate-pulse">Click to Open</p>
+                </div>
+            </div>
+            <div class="back">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-3xl font-serif text-rose-800 mb-2">A Preface</h2>
+                    <div class="divider"></div>
+                    <p class="text-slate-700 leading-relaxed italic text-lg px-4 mb-6">
+                        "In the gallery of my heart, you are the masterpiece."
+                    </p>
+                    <p class="text-slate-500 text-sm leading-relaxed">
+                        This book is a small window into how I see you. Every page is a reminder of the light you bring into my life.
+                    </p>
+                    <span class="page-number">1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paper 2 -->
+        <div id="p2" class="page" style="z-index: 9;">
+            <div class="front">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900 uppercase tracking-tighter mb-2">The Little Things</h2>
+                    <div class="divider"></div>
+                    <p class="text-slate-600 italic mb-4">It's the small moments that make the biggest impact.</p>
+                    <div class="memory-grid">
+                        <div class="memory-box">Your Laughter</div>
+                        <div class="memory-box">Our Late Chats</div>
+                        <div class="memory-box">Your Kind Soul</div>
+                        <div class="memory-box">Your Big Dreams</div>
+                    </div>
+                    <span class="page-number">2</span>
+                </div>
+            </div>
+            <div class="back">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900">Always Together</h2>
+                    <div class="divider"></div>
+                    <p class="text-slate-600 leading-relaxed text-lg italic px-4">
+                        No matter the distance or the time, you are the constant I always look for.
+                    </p>
+                    <p class="mt-8 handwritten text-rose-500">My safe haven.</p>
+                    <span class="page-number">3</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paper 3 (Gemini Magic Poetry Page) -->
+        <div id="p3" class="page" style="z-index: 8;">
+            <div class="front">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900">✨ Magic Note</h2>
+                    <div class="divider"></div>
+                    <div id="magic-note-display" class="text-slate-600 italic px-6 text-lg min-h-[100px] flex items-center justify-center">
+                        Write something small below to see it turn into poetry...
+                    </div>
+                    <div class="gemini-tool">
+                        <input type="text" id="magic-input" class="gemini-input" placeholder="How are you feeling today?">
+                        <button onclick="generateMagicNote()" class="btn btn-primary text-[10px] w-full py-2 mb-2">✨ Create Poetry</button>
+                        <button id="tts-btn" onclick="readAloud()" class="btn text-[10px] w-full py-2 hidden">✨ Read Aloud</button>
+                    </div>
+                    <span class="page-number">4</span>
+                </div>
+            </div>
+            <div class="back">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900 mb-2">✨ Dream Weaver</h2>
+                    <div class="divider"></div>
+                    <div id="dream-canvas">
+                        <span id="dream-placeholder" class="text-slate-300 italic text-xs px-4">Describe a memory or dream for Gunnu...</span>
+                        <img id="dream-image" class="hidden" src="" alt="Dream Visualization">
+                    </div>
+                    <div class="gemini-tool">
+                        <input type="text" id="dream-input" class="gemini-input" placeholder="A quiet beach at sunset...">
+                        <button onclick="generateDreamImage()" class="btn btn-primary text-[10px] w-full py-2">✨ Visualize Memory</button>
+                    </div>
+                    <span class="page-number">5</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paper 4 -->
+        <div id="p4" class="page" style="z-index: 7;">
+            <div class="front">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900">A Special Date</h2>
+                    <div class="divider"></div>
+                    <h3 class="text-4xl font-bold text-rose-600 mb-4">9 Sept 2007</h3>
+                    <p class="text-slate-500 italic">The day the world became a brighter place.</p>
+                    <div class="mt-8 text-rose-200">✨ ✨ ✨</div>
+                    <span class="page-number">6</span>
+                </div>
+            </div>
+            <div class="back">
+                <div class="page-shadow"></div>
+                <div class="page-content">
+                    <h2 class="text-2xl font-serif text-rose-900">My Promise</h2>
+                    <div class="divider"></div>
+                    <p class="text-slate-600 italic px-4 text-lg">
+                        "I will always be your biggest supporter, your loudest cheerleader, and your truest friend."
+                    </p>
+                    <div class="mt-8 text-4xl">🤝</div>
+                    <span class="page-number">7</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paper 10 (Back Cover) -->
+        <div id="p10" class="page cover-back" style="z-index: 1;">
+            <div class="front">
+                <div class="page-shadow"></div>
+                <div class="page-content bg-rose-50/30">
+                    <h2 class="text-2xl font-serif text-rose-900">The End</h2>
+                    <div class="divider"></div>
+                    <p class="text-slate-700 italic mb-8">Of this book, but not our story.</p>
+                    <button onclick="copyShareLink()" class="btn btn-primary text-[10px] py-2 mb-4">🔗 Copy Share Link</button>
+                    <span class="page-number">8</span>
+                </div>
+            </div>
+            <div class="back">
+                <div class="romantic-border flex flex-col items-center justify-center p-8 bg-rose-50">
+                    <h3 class="font-serif text-rose-800 text-3xl font-bold mb-2">Forever</h3>
+                    <div class="divider"></div>
+                    <p class="text-sm text-rose-900 opacity-70 italic text-center">Thank you for being you, Gunnu.</p>
+                    <button id="restart-btn" class="btn btn-primary mt-12 text-sm">Read Again</button>
+                    <p class="mt-8 text-[10px] text-rose-300 tracking-tighter">Handcrafted with ❤️</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls mt-8 flex gap-4">
+        <button id="prev-btn" class="btn">Back</button>
+        <button id="next-btn" class="btn btn-primary">Next</button>
+    </div>
+
+    <script>
+        // --- API KEY HANDLING FOR GITHUB PAGES ---
+        let userApiKey = localStorage.getItem('GEMINI_API_KEY') || "";
+
+        const settingsTrigger = document.getElementById('settings-trigger');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const apiKeyInput = document.getElementById('api-key-input');
+
+        settingsTrigger.addEventListener('click', () => {
+            apiKeyInput.value = userApiKey;
+            settingsOverlay.style.display = 'flex';
+        });
+
+        window.closeSettings = () => { settingsOverlay.style.display = 'none'; };
+
+        window.saveApiKey = () => {
+            userApiKey = apiKeyInput.value.trim();
+            localStorage.setItem('GEMINI_API_KEY', userApiKey);
+            alert("Magic key saved! Features are now active.");
+            closeSettings();
+        };
+
+        function checkApiKey() {
+            if (!userApiKey) {
+                alert("Please click the gear icon (⚙️) in the corner to enter an API key first.");
+                settingsOverlay.style.display = 'flex';
+                return false;
+            }
+            return true;
+        }
+
+        // --- CORE LOGIC ---
+        function showLoader(text) {
+            const loader = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            loadingText.innerText = text;
+            loader.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+
+        async function generateMagicNote() {
+            if (!checkApiKey()) return;
+            const input = document.getElementById('magic-input').value;
+            if (!input) return;
+
+            showLoader('✨ Crafting Poetry...');
+            const systemPrompt = "You are a poetic, romantic storyteller. A person is writing a message to their loved one named 'Gunnu'. Take their input and expand it into a short, heart-melting 2-3 sentence romantic note or poem. Keep it classy, sweet, and deeply affectionate. Only return the final text.";
+
+            try {
+                let retryCount = 0;
+                let delay = 1000;
+                while (retryCount < 5) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: input }] }],
+                                systemInstruction: { parts: [{ text: systemPrompt }] }
+                            })
+                        });
+                        if (!response.ok) throw new Error('API request failed');
+                        const result = await response.json();
+                        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (generatedText) {
+                            document.getElementById('magic-note-display').innerText = generatedText;
+                            document.getElementById('tts-btn').classList.remove('hidden');
+                            break;
+                        }
+                    } catch (err) {
+                        retryCount++;
+                        if (retryCount === 5) throw err;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                    }
+                }
+            } catch (error) {
+                document.getElementById('magic-note-display').innerText = "The magic is tired. Please check your API key or try again.";
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function generateDreamImage() {
+            if (!checkApiKey()) return;
+            const promptInput = document.getElementById('dream-input').value;
+            if (!promptInput) return;
+
+            showLoader('🎨 Painting Dreams...');
+            try {
+                const enhancedPrompt = `A beautiful, ethereal, dreamy digital painting illustration of ${promptInput}. Soft lighting, romantic atmosphere, pastel colors, high quality, artistic.`;
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${userApiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instances: [{ prompt: enhancedPrompt }],
+                        parameters: { sampleCount: 1 }
+                    })
+                });
+                if (!response.ok) throw new Error('Image generation failed');
+                const result = await response.json();
+                const base64Image = result.predictions[0].bytesBase64Encoded;
+                const imageUrl = `data:image/png;base64,${base64Image}`;
+                const imgElement = document.getElementById('dream-image');
+                const placeholder = document.getElementById('dream-placeholder');
+                imgElement.src = imageUrl;
+                imgElement.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            } catch (error) {
+                alert("The magic brush slipped. Ensure your key has Imagen 4.0 access.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function readAloud() {
+            if (!checkApiKey()) return;
+            const text = document.getElementById('magic-note-display').innerText;
+            if (!text) return;
+
+            showLoader('🔊 Finding the right words...');
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${userApiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `Say warmly and romantically: ${text}` }] }],
+                        generationConfig: {
+                            responseModalities: ["AUDIO"],
+                            speechConfig: {
+                                voiceConfig: {
+                                    prebuiltVoiceConfig: { voiceName: "Aoede" }
+                                }
+                            }
+                        }
+                    })
+                });
+                const result = await response.json();
+                const pcmData = result.candidates[0].content.parts[0].inlineData.data;
+                const audioBlob = pcmToWav(pcmData, 24000); 
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+            } catch (error) {
+                console.error(error);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function pcmToWav(base64Pcm, sampleRate) {
+            const binaryString = window.atob(base64Pcm);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+            const buffer = new ArrayBuffer(44 + len);
+            const view = new DataView(buffer);
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+            };
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + len, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, len, true);
+            for (let i = 0; i < len; i++) view.setUint8(44 + i, bytes[i]);
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+        // --- UI & NAVIGATION ---
+        const prevBtn = document.querySelector("#prev-btn");
+        const nextBtn = document.querySelector("#next-btn");
+        const restartBtn = document.querySelector("#restart-btn");
+        const book = document.querySelector("#book");
+        const papers = Array.from(document.querySelectorAll(".page"));
+        let currentLocation = 1;
+        let numOfPapers = papers.length;
+        let maxLocation = numOfPapers + 1;
+
+        function openBook() { book.classList.add("open"); }
+        function closeBook() { book.classList.remove("open"); }
+
+        function goNextPage() {
+            if(currentLocation < maxLocation) {
+                const paperIndex = currentLocation - 1;
+                const paper = papers[paperIndex];
+                if (currentLocation === 1) openBook();
+                paper.classList.add("flipped");
+                paper.style.zIndex = currentLocation;
+                if (currentLocation === numOfPapers) closeBook();
+                currentLocation++;
+            }
+        }
+
+        function goPrevPage() {
+            if(currentLocation > 1) {
+                currentLocation--;
+                const paperIndex = currentLocation - 1;
+                const paper = papers[paperIndex];
+                if (currentLocation === 1) closeBook();
+                if (currentLocation === numOfPapers) openBook();
+                paper.classList.remove("flipped");
+                paper.style.zIndex = numOfPapers - paperIndex + 1;
+            }
+        }
+
+        function restartBook() {
+            const resetInterval = setInterval(() => {
+                if (currentLocation > 1) goPrevPage();
+                else clearInterval(resetInterval);
+            }, 80);
+        }
+
+        prevBtn.addEventListener("click", e => { e.stopPropagation(); goPrevPage(); });
+        nextBtn.addEventListener("click", e => { e.stopPropagation(); goNextPage(); });
+        restartBtn.addEventListener("click", e => { e.stopPropagation(); restartBook(); });
+        
+        book.addEventListener("click", (e) => {
+            if (['BUTTON', 'INPUT'].includes(e.target.tagName)) return;
+            if (currentLocation === maxLocation) restartBook();
+            else goNextPage();
+        });
+
+        window.copyShareLink = () => {
+            const url = window.location.href;
+            const tempInput = document.createElement("input");
+            document.body.appendChild(tempInput);
+            tempInput.value = url;
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            alert("Link copied! Share this with Gunnu.");
+        };
+
+        const createPetals = () => {
+            for(let i = 0; i < 20; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.left = Math.random() * 100 + 'vw';
+                petal.style.width = Math.random() * 15 + 10 + 'px';
+                petal.style.height = petal.style.width;
+                petal.style.animationDuration = Math.random() * 3 + 4 + 's';
+                petal.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(petal);
+            }
+        };
+        window.addEventListener('load', createPetals);
+    </script>
+</body>
+</html>
